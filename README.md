@@ -39,7 +39,7 @@ Array Creation ::= Array[{int}]
 Or ::= {And} | {Or} || {And}
 And ::= {Equality} | {And} && {Equality}
 Equality ::= {Relational} | {Equality} == {Relational} | {Equality} != {Relational}
-Relational ::= {Additive} | {Relational} > {Additive} | {Relational} >= {Additive} | {Relational} < {Additive} | {Relational} <= {Additive} | {relational} isType {Types}
+Relational ::= {Additive} | {Relational} > {Additive} | {Relational} >= {Additive} | {Relational} < {Additive} | {Relational} <= {Additive} | {relational} isType {Type}
 Additive ::= {Multiplicitive} | {Additive} + {Multiplicitive} | {Additive} - {Multiplicitive}
 Multiplicitive ::= {Exponential} | {Multiplicitive} * {Exponential} | {Multiplicitive} / {Exponential} | {Multiplicitive} % {Exponential} | {Multiplicitive} ~ {Exponential}            ~ is the floor after division operator  returns int
 Exponential ::= {unary} | {Exponential} ^ {unary} | {exponential} : {unary}    : is for nth root
@@ -53,17 +53,25 @@ Array Access ::= {name}[Or]
 var ::= {literal} | {name} | ( {expression} )
 
 literal ::= {int} | {float} | {boolean} | {string} | {array}
-Types ::= int | |float | boolean | string | array
+Type ::= int | |float | boolean | string | array
 
 int ::= some regular expression
 float ::= some regular expression
 boolean ::= true | false
-string ::= " some regular expression surrounded in quotes "
+string ::= " some regular expression surrounded in quotes " | ' some regular expression in single quotes '
 array ::= [{array contents}]
 array contents ::= {literal} | {literal}, {array contents}
 
 creation ::= array[{num}]       used to make arrays of certain size. Can be changed to make different classes or structs in the future
 
+Single line Comment = #
+Multiline Comment = 
+$
+
+Hello world this is a multiline quote
+
+$
+ 
 
 
 
