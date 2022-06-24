@@ -1,0 +1,16 @@
+
+
+
+# function with return type
+define test (int x, float a, bool t, object A){ 
+
+} -> int
+
+
+
+# function without return type
+
+define test (int x, float a, bool t, object A){ 
+
+} -> None
+
