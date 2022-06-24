@@ -58,7 +58,7 @@ literal ::= {int} | {float} | {boolean} | {string} | {array}
 int ::= some regular expression
 float ::= some regular expression
 boolean ::= true | false
-string ::= " some regular expression surrounded in quotes " | ' some regular expression in single quotes '
+string ::= " some regular expression surrounded in quotes "
 array ::= [{array contents}]
 array contents ::= {literal} | {literal}, {array contents}
 
