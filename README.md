@@ -53,7 +53,7 @@ Array Access ::= {name}[Or]
 var ::= {literal} | {name} | ( {expression} )
 
 literal ::= {int} | {float} | {boolean} | {string} | {array}
-Type ::= int | |float | boolean | string | array
+
 
 int ::= some regular expression
 float ::= some regular expression
@@ -62,7 +62,7 @@ string ::= " some regular expression surrounded in quotes " | ' some regular exp
 array ::= [{array contents}]
 array contents ::= {literal} | {literal}, {array contents}
 
-creation ::= array[{num}]       used to make arrays of certain size. Can be changed to make different classes or structs in the future
+creation ::= {type}[{num}]       used to make arrays of certain size. Can be changed to make different classes or structs in the future
 
 Single line Comment = #
 Multiline Comment = 
