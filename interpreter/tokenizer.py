@@ -5,7 +5,7 @@
 import re
 from tokenize import Token
 
-from torch import _sparse_log_softmax_backward_data
+from numpy import string_
 
 
 class Tokenizer:
@@ -43,8 +43,8 @@ class Tokenizer:
         "]": 30,
         "{": 31,
         "}": 32,
-        "#": 33,
-        "$": 34,
+        # "#": 33,
+        # "$": 34,
         #'"': 35,
         # "'": 36,
     }
@@ -74,21 +74,30 @@ class Tokenizer:
     string_token = 52
 
     # this will mathch ints as well but as long as we check ints first it wont matter
-    floating_point = r"^[-]?([0-9]*[.])?[0-9]+$"
+    floating_point = r"^[-]?([0-9]*)?[.][0-9]+$"
     floating_point_token = 53
+
+    name = r"^[\w]+$"
+    name_token = 54
 
     def __init__(self, fname: str):
         self.fname = fname
         self.token_stream = []
         self.token_literals = []
         self.line_number = 0
+        self.in_comment = False
 
     def tokenize(self):
 
         with open(self.fname) as source:
             for line in source:
                 self.line_number += 1
+                if line == "":
+                    continue
                 self.__process(line)
+
+        self.token_stream.append(Tokenizer.EOF)
+        self.token_literals.append("EOF")
 
     @staticmethod
     def __split(line: str):
@@ -114,37 +123,50 @@ class Tokenizer:
 
         line = line.strip()
         line = Tokenizer.__split(line)
-        print(line)
 
         while line:
 
             token = line.pop(0)
-            if token in Tokenizer.symbols:
+
+            # check for comments
+            if token == "#":
+                return  # skip rest of line in single line comment
+
+            if token == "$":
+                self.in_comment = not self.in_comment
+                continue
+
+            if token in Tokenizer.symbols and not self.in_comment:
+
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.symbols[token])
 
-            elif token in Tokenizer.key_words:
+            elif token in Tokenizer.key_words and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.key_words[token])
 
-            elif re.search(Tokenizer.integer, token):
+            elif re.search(Tokenizer.integer, token) and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.integer_token)
 
-            elif re.search(Tokenizer.floating_point, token):
+            elif re.search(Tokenizer.floating_point, token) and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.floating_point_token)
 
-            elif re.search(Tokenizer.string, token):
-                self.token_literals.append(token)
+            elif re.search(Tokenizer.string, token) and not self.in_comment:
+                self.token_literals.append(token.strip('"'))
                 self.token_stream.append(Tokenizer.string_token)
+
+            elif re.search(Tokenizer.name, token) and not self.in_comment:
+                self.token_literals.append(token)
+                self.token_stream.append(Tokenizer.name_token)
 
             else:
                 # at this poiint it may be multiple symbols that are touching each other.
                 # solve with greedy tokenization
-                self.__greedy_tokenize(token)
-
-            print(self.token_stream)
+                comment = self.__greedy_tokenize(token)
+                if comment:
+                    return
 
     def __greedy_tokenize(self, token: str):
 
@@ -152,46 +174,65 @@ class Tokenizer:
         int_regex = Tokenizer.integer[:-1]
         float_regex = Tokenizer.floating_point[:-1]
         string_regex = Tokenizer.string[:-1]
-
-        # symbol_list = ["\\" + symbol for symbol in symbol_list if "*" in symbol]
+        name_regex = Tokenizer.name[:-1]
 
         while token:
+
+            if token[0] == "#" and not self.in_comment:
+                return True
+
+            if token[0] == "$":
+                self.in_comment = not self.in_comment
+                token = token[1:]
+                continue
 
             # scan token candidate from left to see if it multiple combined tokens
             for token_candidate in symbol_list:
                 length = len(token_candidate)
                 candidate = "\A" + re.escape(token_candidate)
-                # print(candidate)
 
                 if re.search(candidate, token):
                     found = token[:length]
-                    self.token_literals.append(found)
-                    self.token_stream.append(Tokenizer.symbols[token_candidate])
+                    if not self.in_comment:
+                        self.token_literals.append(found)
+                        self.token_stream.append(Tokenizer.symbols[token_candidate])
                     token = token[length:]
-                    print("FOUND")
                     break
 
             else:
-                if re.search(int_regex, token):
-                    match = re.search(int_regex, token)
-                    self.token_literals.append(match[0])
-                    self.token_stream.append(Tokenizer.integer_token)
+                if re.search(float_regex, token):
+                    match = re.search(float_regex, token)
+                    if not self.in_comment:
+                        self.token_literals.append(match[0])
+                        self.token_stream.append(Tokenizer.floating_point_token)
                     token = token[len(match[0]) :]
 
-                elif re.search(float_regex, token):
-                    match = re.search(float_regex, token)
-                    self.token_literals.append(match[0])
-                    self.token_stream.append(Tokenizer.floating_point_token)
+                elif re.search(int_regex, token):
+                    match = re.search(int_regex, token)
+                    if not self.in_comment:
+                        self.token_literals.append(match[0])
+                        self.token_stream.append(Tokenizer.integer_token)
                     token = token[len(match[0]) :]
 
                 elif re.search(string_regex, token):
                     match = re.search(string_regex, token)
-                    self.token_literals.append(match[0])
-                    self.token_stream.append(Tokenizer.string_token)
+                    current_string = match[0].strip('"')
+                    if not self.in_comment:
+                        self.token_literals.append(current_string)
+                        self.token_stream.append(Tokenizer.string_token)
                     token = token[len(match[0]) :]
+
+                elif re.search(name_regex, token):
+                    match = re.search(name_regex, token)
+                    if not self.in_comment:
+                        self.token_literals.append(match[0])
+                        self.token_stream.append(Tokenizer.name_token)
+                    token = token[len(match[0]) :]
+
                 else:
-                    message = f"Unknown token found on line {self.line_number}. {token} is not recognized."
-                    raise UnknownTokenException(message)
+                    if not self.in_comment:
+                        message = f"Unknown token found on line {self.line_number}. {token} is not recognized."
+                        raise UnknownTokenException(message)
 
     def get_token(self) -> int:
         return self.token_stream[0]

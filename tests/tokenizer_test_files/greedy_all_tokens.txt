@@ -1,0 +1,2 @@
+*=+=-=\=~=%=^=:=||&&++-->=<====+-*/%~!^:|()[]{}
+define int float boolean string array if else while do for true false 12317432"Hello World"3.1415My_Var123

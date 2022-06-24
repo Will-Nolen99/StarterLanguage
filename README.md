@@ -56,7 +56,7 @@ literal ::= {int} | {float} | {boolean} | {string} | {array}
 
 
 int ::= some regular expression
-float ::= some regular expression
+float ::= some regular expression       This will match and number with a decimal and value on the right of the decimal   1.2  .3 .34 0.11231  are all valid  1. 1 are not valid
 boolean ::= true | false
 string ::= " some regular expression surrounded in quotes "
 array ::= [{array contents}]
@@ -73,7 +73,5 @@ Hello world this is a multiline quote
 $
  
 
-
-
-Name ::= Some regular expression
+Name ::= Some regular expression     Capital letters lowercase letters digits and underscore
 
