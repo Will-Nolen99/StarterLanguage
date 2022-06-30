@@ -14,3 +14,6 @@ define test (int x, float a, bool t, object A){
 
 } -> None
 
+
+
+let x *= 5

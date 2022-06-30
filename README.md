@@ -6,53 +6,56 @@ Basic custom Programming Language
 
 # BNF Grammar
 
-Program ::= {Feature} {Program} | {Feature}
+Program ::= {Feature List} -
+Feature List ::= {Feature} {Feature List} | {Feature}
 Feature ::= {Function} | {Class}               class will not be implemented initially but I am keping here for now. Same with Struct. Some things are left in the Grammar but will not be implemented
 
              
-Function ::= define {name} = {Function Declaration Sequence} -> { {Statement Sequence} } {return type}
+Function ::= define {name} = {Function Declaration Sequence} -> { {Statement Sequence} } -> {return type}    -
+
+Function Declaration Sequence ::= {Function Declaration}, {Function Declaration Sequnce} | { Function Declaration}    -
+Statement Sequence ::= {Statement} {Statement Sequence} | {Statement}   -
+Declaration Sequence ::= {Declaration}, {Declaration Sequence} | {Declaration}   -
+Statement ::= {Declaration Sequence} | {Expression} | {If} | {While} | {Do while} | {For} | {Input} | {Output}     -
+Declaration ::= {Type} {Name} | {Type} {Name} = {Or} -
+Function Declaration ::= {Type} {Name}   -
+Type ::= int | float | boolean | string | array    # I am just doing this in place when needed instead of making it a non-terminal
 
 
-Statement Sequence ::= {Statement} {Statement Sequence} | {Statement}
-Declaration Sequence ::= {Declaration}, {Declaration Sequence} | {Declaration}
-Statement ::= {Declaration Sequence} | {If} | {While} | {Do while} | {For} | {Input} | {Output}
-Declaration ::= {Type} {Name} | {Type} {Assignment Expression}
-Type ::= int | float | boolean | string | array
+If ::= if {Expression} { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else {If}      -
+
+While ::= while {expression} { {Statement Sequence} }      -
+Do While ::= do { {Statement Sequence} } while {expression}       -
+
+For ::= for {Declaration Sequence} | {Expression} | {Expression} {{Statement Sequence}}      - 
 
 
-If ::= if {Expression} { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else {If}
+Expression = {Or} | {Assignment}      - 
 
-While ::= while expression { {Statement Sequence} }
-Do While ::= do { {Statement Sequence} } while expression
-
-For ::= for {Declaration Sequence} | {Expression} | {Expression} {{Statement Sequence}}
-
-
-Expression = {Or} | {Assignment Expression}
-
-Assignment Expression ::= {left} {Assignment Operator} {Resolve Expression} | {left} = {Array Creation}
+Assignment ::= let {left} {Assignment Operator} {Or}
 left ::= {Struct Access} | {Aray Access} | {Name} 
 Assignment Operator ::= = | *= | += | -= | \= | ~= | %= | ^= | :=     
 Array Creation ::= Array[{int}]
 
 
-Or ::= {And} | {Or} || {And}
-And ::= {Equality} | {And} && {Equality}
-Equality ::= {Relational} | {Equality} == {Relational} | {Equality} != {Relational}
-Relational ::= {Additive} | {Relational} > {Additive} | {Relational} >= {Additive} | {Relational} < {Additive} | {Relational} <= {Additive} | {relational} isType {Type}
-Additive ::= {Multiplicitive} | {Additive} + {Multiplicitive} | {Additive} - {Multiplicitive}
-Multiplicitive ::= {Exponential} | {Multiplicitive} * {Exponential} | {Multiplicitive} / {Exponential} | {Multiplicitive} % {Exponential} | {Multiplicitive} ~ {Exponential}            ~ is the floor after division operator  returns int
-Exponential ::= {unary} | {Exponential} ^ {unary} | {exponential} : {unary}    : is for nth root
-Unary ::= {postfix} | ++{unary} | --{unary} |!{unary}
-Postfix ::= {Term} | {Postfix}++ | {Postfix}--
-Term ::= {literal} | ({Or}) | {Struct Access} | {Array Access} | {Function call} | {Name}           Class access and method invocation would occur here
+Or ::= {And} | {And} || {Or}         -
+And ::= {Equality} | {Equality} && {And}     -
+Equality ::= {Relational} | {Relational} == {Equality}   | {Relational} != {Equality} 
+Relational ::= {Additive} | {Additive} > {Relational} | {Additive} >= {Relational} | {Additive} < {Relational} | {Additive} <= {Relational} 
+Additive ::= {Multiplicitive} | {Multiplicitive} + {Additive} | {Multiplicitive} - {Additive}
+Multiplicitive ::= {Exponential} | {Exponential} * {Multiplicitive} | {Exponential} / {Multiplicitive} |  {Exponential} % {Multiplicitive} | {Exponential} ~ {Multiplicitive}            ~ is the floor after division operator  returns int
+Exponential ::= {unary} | {unary} ^ {Exponential} | {unary} : {exponential}    : is for nth root
+Unary ::= {postfix} | ++{unary} | --{unary} |!{unary}                         # This is currently causing a bug I think it is fixed but I will leave this here as a not. The symbols in front were not recognized when using one token look ahead for expressions
+
+Postfix ::= {Term} | {Term}++ | {Term}--    This will need to have a runtime check for the type of term that is a child
+Term ::= {literal} | ({Or}) | {var} -
 
 Array Access ::= {name}[Or]
 
 
-var ::= {literal} | {name} | ( {expression} )
+var ::= {Struct Access} | {Array Access} | {Function call} | {Name}     -  to find type of access read in name first then look to see next symbol     Class access 
 
-literal ::= {int} | {float} | {boolean} | {string} | {array}
+literal ::= {int} | {float} | {boolean} | {string} | {array}     -
 
 
 int ::= some regular expression
@@ -61,6 +64,9 @@ boolean ::= true | false
 string ::= " some regular expression surrounded in quotes "
 array ::= [{array contents}]
 array contents ::= {literal} | {literal}, {array contents}
+
+Input ::= input({or})
+Output ::= print({or})
 
 creation ::= {type}[{num}]       used to make arrays of certain size. Can be changed to make different classes or structs in the future
 

@@ -3,9 +3,6 @@
 
 
 import re
-from tokenize import Token
-
-from numpy import string_
 
 
 class Tokenizer:
@@ -26,6 +23,7 @@ class Tokenizer:
         ">=": 13,
         "<=": 14,
         "==": 15,
+        "->": 33,  # this token number is much higher since it was added later
         "=": 16,
         "+": 17,
         "-": 18,
@@ -44,7 +42,7 @@ class Tokenizer:
         "{": 31,
         "}": 32,
         # "#": 33,
-        # "$": 34,
+        # "$": 34,         No longer in language or work better as non-token
         #'"': 35,
         # "'": 36,
     }
@@ -63,6 +61,12 @@ class Tokenizer:
         "for": 47,
         "true": 48,
         "false": 49,
+        "return": 50,
+        "nothing": 55,
+        "print": 56,
+        "read": 57,
+        "isType": 58,
+        "let": 59,
     }
 
     EOF = 50
@@ -84,6 +88,7 @@ class Tokenizer:
         self.fname = fname
         self.token_stream = []
         self.token_literals = []
+        self.line_numbers = []
         self.line_number = 0
         self.in_comment = False
 
@@ -98,6 +103,7 @@ class Tokenizer:
 
         self.token_stream.append(Tokenizer.EOF)
         self.token_literals.append("EOF")
+        self.line_numbers.append(self.line_number)
 
     @staticmethod
     def __split(line: str):
@@ -140,26 +146,32 @@ class Tokenizer:
 
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.symbols[token])
+                self.line_numbers.append(self.line_number)
 
             elif token in Tokenizer.key_words and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.key_words[token])
+                self.line_numbers.append(self.line_number)
 
             elif re.search(Tokenizer.integer, token) and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.integer_token)
+                self.line_numbers.append(self.line_number)
 
             elif re.search(Tokenizer.floating_point, token) and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.floating_point_token)
+                self.line_numbers.append(self.line_number)
 
             elif re.search(Tokenizer.string, token) and not self.in_comment:
                 self.token_literals.append(token.strip('"'))
                 self.token_stream.append(Tokenizer.string_token)
+                self.line_numbers.append(self.line_number)
 
             elif re.search(Tokenizer.name, token) and not self.in_comment:
                 self.token_literals.append(token)
                 self.token_stream.append(Tokenizer.name_token)
+                self.line_numbers.append(self.line_number)
 
             else:
                 # at this poiint it may be multiple symbols that are touching each other.
@@ -196,6 +208,7 @@ class Tokenizer:
                     if not self.in_comment:
                         self.token_literals.append(found)
                         self.token_stream.append(Tokenizer.symbols[token_candidate])
+                        self.line_numbers.append(self.line_number)
                     token = token[length:]
                     break
 
@@ -205,6 +218,7 @@ class Tokenizer:
                     if not self.in_comment:
                         self.token_literals.append(match[0])
                         self.token_stream.append(Tokenizer.floating_point_token)
+                        self.line_numbers.append(self.line_number)
                     token = token[len(match[0]) :]
 
                 elif re.search(int_regex, token):
@@ -212,6 +226,7 @@ class Tokenizer:
                     if not self.in_comment:
                         self.token_literals.append(match[0])
                         self.token_stream.append(Tokenizer.integer_token)
+                        self.line_numbers.append(self.line_number)
                     token = token[len(match[0]) :]
 
                 elif re.search(string_regex, token):
@@ -220,6 +235,7 @@ class Tokenizer:
                     if not self.in_comment:
                         self.token_literals.append(current_string)
                         self.token_stream.append(Tokenizer.string_token)
+                        self.line_numbers.append(self.line_number)
                     token = token[len(match[0]) :]
 
                 elif re.search(name_regex, token):
@@ -227,6 +243,7 @@ class Tokenizer:
                     if not self.in_comment:
                         self.token_literals.append(match[0])
                         self.token_stream.append(Tokenizer.name_token)
+                        self.line_numbers.append(self.line_number)
                     token = token[len(match[0]) :]
 
                 else:
@@ -240,9 +257,13 @@ class Tokenizer:
     def skip_token(self) -> None:
         self.token_stream.pop(0)
         self.token_literals.pop(0)
+        self.line_numbers.pop(0)
 
     def get_literal(self) -> str:
         return self.token_literals[0]
+
+    def get_line_number(self) -> int:
+        return self.line_number[0]
 
 
 class UnknownTokenException(Exception):
