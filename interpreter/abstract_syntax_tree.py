@@ -5,6 +5,7 @@ from tokenizer import Tokenizer
 class Program:
 
     functions = {}
+    indentation_level = 0
 
     def __init__(self, tk: Tokenizer):
         self.tk = tk
@@ -24,11 +25,27 @@ class Program:
 
         print("Done Parsing")
 
-    def print(self):
-        pass
+    def print(self, output_file):
+        out_file = open(output_file, "a")
+        for function in Program.functions:
+            function.print(out_file)
+
+        out_file.close()
 
     def execute(self):
         pass
+
+    @staticmethod
+    def indent():
+        Program.indentation_level += 1
+
+    @staticmethod
+    def undent():
+        Program.indentation_level -= 1
+
+    @staticmethod
+    def make_indent(out_file):
+        out_file.write("\t" * Program.indentation_level)
 
 
 class Function:
@@ -108,8 +125,17 @@ class Function:
 
         # Parse function should be done now
 
-    def print(self):
-        pass
+    def print(self, out_file):
+        out_file.write("define ")
+        out_file.write(f"{self.name} ")
+        out_file.write("= ")
+        self.function_declaration_sequence.print(out_file)
+        out_file.write(" -> {")
+        Program.indend()
+        self.Statement_Sequence.print(out_file)
+        Program.undent()
+        out_file.write("} -> ")
+        out_file.write(f"{self.Type}")
 
     def execute(self):
         pass
@@ -139,6 +165,12 @@ class Function_Declaration_Sequence:
         else:
             self.alternative = 2
 
+    def print(self, out_file):
+        self.function_declaration.print(out_file)
+        if self.alternative == 1:
+            out_file.write(", ")
+            self.function_declaration_sequence.print(out_file)
+
 
 class Function_Declaration:
     def __init__(self, tk: Tokenizer):
@@ -149,7 +181,7 @@ class Function_Declaration:
     def parse(self):
         tk = self.tk
 
-        # get return type for the function
+        # get type for function arguments
         if (
             tk.get_token() <= Tokenizer.key_words["int"]
             or tk.get_token() >= Tokenizer.key_words["array"]
@@ -166,6 +198,9 @@ class Function_Declaration:
 
         self.name = tk.get_literal()
         tk.skip_token()
+
+    def print(self, out_file):
+        out_file.write(f"{self.type} {self.name}")
 
 
 class Statement_Sequence:
@@ -204,6 +239,11 @@ class Statement_Sequence:
             self.statement_sequence = Statement_Sequence(tk)
             self.statement_sequence.parse()
 
+    def print(self, out_file):
+        self.statement.print(out_file)
+        if self.alternative == 1:
+            self.statement_sequence.print(out_file)
+
 
 class Declaration_Sequence:
     def __init__(self, tk: Tokenizer):
@@ -217,15 +257,20 @@ class Declaration_Sequence:
 
         self.declaration = Declaration(tk)
         self.declaration.parse()
-        self.alternative = 1
+        self.alternative = 2
 
         token = tk.get_token()
 
         if token == Tokenizer.symbols[","]:
             tk.skip_token()
-            self.alternative = 2
+            self.alternative = 1
             self.declaration_sequence = Declaration_Sequence(tk)
             self.declaration_sequence.parse()
+
+    def print(self, out_file):
+        self.declaration.print(out_file)
+        if self.alternative == 1:
+            self.declaration_sequence.print(out_file)
 
 
 class Statement:
@@ -288,6 +333,27 @@ class Statement:
             self.expresssion = Expression(tk)
             self.expresssion.parse()
 
+    def print(self, out_file):
+
+        Program.make_indent()
+        match self.alternative:
+            case 1:
+                self.declaration_sequence.print(out_file)
+            case 2:
+                self.expresssion.print(out_file)
+            case 3:
+                self.if_statement.print(out_file)
+            case 3:
+                self.while_statement.print(out_file)
+            case 5:
+                self.do_while_statement.print(out_file)
+            case 6:
+                self.for_statement.print(out_file)
+            case 7:
+                self.input.print(out_file)
+            case 8:
+                self.output.print(out_file)
+
 
 class Declaration:
     def __init__(self, tk: Tokenizer):
@@ -324,6 +390,12 @@ class Declaration:
             self.or_statement = Or(tk)
             self.or_statement.parse()
 
+    def print(self, out_file):
+        out_file.write(f"{self.type} {self.name}")
+        if self.alternative == 2:
+            out_file.write(" = ")
+            self.or_statement.print(out_file)
+
 
 class Expression:
     def __init__(self, tk: Tokenizer):
@@ -346,6 +418,12 @@ class Expression:
             self.alternative = 1
             self.or_expression = Or(tk)
             self.or_expression.parse()
+
+    def print(self, out_file):
+        if self.alternative == 1:
+            self.or_expression.print(out_file)
+        elif self.alternative == 2:
+            self.assignment.print(out_file)
 
 
 class If:

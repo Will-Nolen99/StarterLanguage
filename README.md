@@ -32,10 +32,10 @@ For ::= for {Declaration Sequence} | {Expression} | {Expression} {{Statement Seq
 
 Expression = {Or} | {Assignment}      - 
 
-Assignment ::= let {left} {Assignment Operator} {Or}
-left ::= {Struct Access} | {Aray Access} | {Name} 
-Assignment Operator ::= = | *= | += | -= | \= | ~= | %= | ^= | :=     
-Array Creation ::= Array[{int}]
+Assignment ::= let {left} {Assignment Operator} {Or} -
+left ::= {Struct Access} | {Aray Access} | {Name} -
+Assignment Operator ::= = | *= | += | -= | \= | ~= | %= | ^= | :=     -
+Array Creation ::= Array[{int}]-
 
 
 Or ::= {And} | {And} || {Or}         -
