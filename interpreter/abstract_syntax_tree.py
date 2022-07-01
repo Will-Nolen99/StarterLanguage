@@ -1,3 +1,4 @@
+from audioop import add
 from tokenize import Token
 from tokenizer import Tokenizer
 
@@ -487,6 +488,29 @@ class If:
             raise IncorrectTokenException(message)
 
 
+    def print(self, out_file):
+        out_file.write("if")
+        self.expression.print(out_file)
+        out_file.write("{")
+        Program.indent()
+
+        self.statement_sequence.print(out_file)
+        out_file.write("} ")
+        Program.undent()
+        if self.alternative == 2 or self.alternative == 3:
+            out_file.write("else")
+            if self.alternative == 3:
+                self.if_statement.print(out_file)
+            else:
+                Program.indent()
+                out_file.write("{")
+                self.statement_sequence2.print(out_file)
+                out_file.write("}")
+                Program.undent()
+
+        
+
+
 class While:
     def __init__(self, tk: Tokenizer):
         self.tk = tk
@@ -516,6 +540,15 @@ class While:
             message = f"Incorrect token found on line {tk.get_line_number()}. Expected '{close_brace}' found '{tk.get_literal()}'."
             raise IncorrectTokenException(message)
         tk.skip_token()
+
+    def print(self, out_file):
+        out_file.print("while")
+        self.expression.print(out_file)
+        out_file.print("{")
+        Program.indent()
+        self.statement_sequence.print(out_file)
+        Program.undent()
+        out_file.print("}")
 
 
 class Do_While:
@@ -557,6 +590,14 @@ class Do_While:
 
         self.expression = Expression(tk)
         self.expression.parse()
+
+    def print(self, out_file):
+        out_file.write("do {")
+        Program.indent()
+        self.statement_sequence.print(out_file)
+        Program.undent()
+        out_file.write("} while ")
+        self.expression.print(out_file)
 
 
 class For:
@@ -615,6 +656,21 @@ class For:
         tk.skip_token()
 
 
+
+    def print(self, out_file):
+            out_file.write("for ")
+            self.declaration_sequence.print(out_file)
+            out_file.write(" | ")
+            self.expression.print(out_file)
+            out_file.write(" | ")
+            self.expression2.print(out_file)
+            out_file.write("{")
+            Program.indent()
+            self.statement_sequence.print()
+            Program.undent()
+            out_file.write("}")
+
+
 class Input:
     def __init__(self, tk: Tokenizer):
         self.tk = tk
@@ -643,6 +699,12 @@ class Input:
             message = f"Incorrect token found on line {tk.get_line_number()}. Expected ')' found '{tk.get_literal()}'."
             raise IncorrectTokenException(message)
         tk.skip_token()
+
+
+    def print(self, out_file):
+        out_file.write("input(")
+        self.or_expression.print(out_file)
+        out_file.write(")")
 
 
 class Output:
@@ -674,6 +736,11 @@ class Output:
             raise IncorrectTokenException(message)
         tk.skip_token()
 
+    def output(self, out_file):
+        out_file.write("print(")
+        self.or_expression.print(out_file)
+        out_file.write(")")
+
 
 class Or:
     def __init__(self, tk: Tokenizer):
@@ -697,6 +764,16 @@ class Or:
             self.or_expression.parse()
 
 
+
+    def print(self, out_file):
+        self.and_expression.print(out_file)
+        if self.alternative == 2:
+            out_file.write(" || ")
+            self.or_expression.print(out_file)
+
+
+
+
 class And:
     def __init__(self, tk: Tokenizer):
         self.tk = tk
@@ -717,6 +794,12 @@ class And:
             self.alternative = 2
             self.and_expression = And(tk)
             self.and_expression.parse()
+
+    def print(self, out_file):
+        self.equality.print(out_file)
+        if self.alternative == 2:
+            out_file.write(" && ")
+            self.and_expression.print(out_file)
 
 
 class Equality:
@@ -745,6 +828,15 @@ class Equality:
             self.alternative = 3
             self.equality = Equality(tk)
             self.equality.parse()
+
+    def print(self, out_file):
+        self.relational.print(out_file)
+
+        if self.alternative == 2:
+            out_file.write(" == ")
+            self.equality.print(out_file)
+        elif self.alternative == 3:
+            self.equality.print(" != ")
 
 
 class Relational:
@@ -779,6 +871,22 @@ class Relational:
             self.relational = Relational(tk)
             self.alternative = 5
 
+    def print(self, out_file):
+        self.additive.print(out_file)
+
+        if self.alternative != 1:
+            match self.alternative:
+                case 2:
+                    out_file.write(" > ")
+                case 3:
+                    out_file.write(" >= ")
+                case 4: 
+                    out_file.write(" < ")
+                case 5:
+                    out_file.write(" <= ")
+
+            self.relational.print(out_file)
+
 
 class Additive:
     def __init__(self, tk: Tokenizer):
@@ -805,6 +913,16 @@ class Additive:
             self.additive = Additive(tk)
             self.additive.parse()
 
+    def print(self, out_file):
+        self.multiplicitive.print(out_file)
+
+        if self.alternative == 2:
+            out_file.write(" + ")
+            self.additive.print(out_file)
+        elif self.alternative == 3:
+            out_file.write(" - ")
+            self.additive.write(out_file)
+
 
 class Multiplicitive:
     def __init__(self, tk: Tokenizer):
@@ -827,20 +945,38 @@ class Multiplicitive:
             self.multiplicitive = Multiplicitive(tk)
             self.multiplicitive.parse()
         elif token == Tokenizer.symbols["/"]:
-            self.alternative = 2
+            self.alternative = 3
             tk.skip_token()
             self.multiplicitive = Multiplicitive(tk)
             self.multiplicitive.parse()
         elif token == Tokenizer.symbols["%"]:
-            self.alternative = 2
+            self.alternative = 4
             tk.skip_token()
             self.multiplicitive = Multiplicitive(tk)
             self.multiplicitive.parse()
         elif token == Tokenizer.symbols["~"]:
-            self.alternative = 2
+            self.alternative = 5
             tk.skip_token()
             self.multiplicitive = Multiplicitive(tk)
             self.multiplicitive.parse()
+
+
+    def print(self, out_file):
+        self.exponential.print(out_file)
+
+        match self.alternative:
+            case 2:
+                out_file.write(" * ")
+                self.multiplicitive.print(out_file)
+            case 3:
+                out_file.write(" / ")
+                self.multiplicitive.print(out_file)
+            case 4:
+                out_file.write(" % ")
+                self.multiplicitive.print(out_file)
+            case 5:
+                out_file.write(" ~ ")
+                self.multiplicitive.print(out_file)
 
 
 class Exponential:
@@ -868,6 +1004,18 @@ class Exponential:
             tk.skip_token()
             self.exponential = Exponential(tk)
             self.exponential.parse()
+
+    def parse(self, out_file):
+        self.unary.print(out_file)
+
+        if self.alternative == 2:
+            out_file.write(" ^ ")
+            self.exponential.print(out_file)
+
+        elif self.alternative == 3:
+            out_file.write(" : ")
+            self.exponential.print(out_file)
+
 
 
 class Unary:
@@ -901,6 +1049,19 @@ class Unary:
             self.postfix = Postfix(tk)
             self.postfix.parse()
 
+    def print(self, out_file):
+        if self.alternative == 1:
+            self.postfix.print(out_file)
+        elif self.alternative == 2:
+            out_file.write("++")
+            self.unary.print(out_file)
+        elif self.alternative == 3:
+            out_file.write("--")
+            self.unary.print(out_file)
+        elif self.alternative == 4:
+            out_file.write("!")
+            self.unary.print(out_file)
+
 
 class Postfix:
     def __init__(self, tk: Tokenizer):
@@ -922,6 +1083,13 @@ class Postfix:
         elif token == Tokenizer.symbols["--"]:
             self.alternative = 3
             tk.skip_token()
+
+    def print(self, out_file):
+        self.term.print(out_file)
+        if self.alternative == 2:
+            out_file.write("++ ")
+        elif self.alternative == 3:
+            out_file.write("-- ")
 
 
 class Term:
@@ -958,12 +1126,24 @@ class Term:
             self.literal = Literal(tk)
             self.literal.parse()
 
+    def print(self, out_file):
+        if self.alternative == 2:
+            out_file.write("(")
+            self.or_statement.print(out_file)
+            out_file.write(")")
+
+        elif self.alternative == 1:
+            self.literal.print(out_file)
+        elif self.alternative == 2:
+            self.var.print(out_file)
+
 
 class Literal:
     def __init__(self, tk: Tokenizer):
         self.tk = tk
         self.type = None
         self.value = None
+        
 
     def parse(self):
         tk = self.tk
@@ -993,6 +1173,9 @@ class Literal:
         else:
             message = f"Incorrect token found on line {tk.get_line_number()}. Expected 'literal' found '{tk.get_literal()}'."
             raise IncorrectTokenException(message)
+
+    def print(self, out_file):
+        out_file.write(f"{self.value}")
 
 
 class ArrayLiteral:
@@ -1067,6 +1250,14 @@ class Var:
             self.array_access.parse()
             self.alternative = 2
 
+    def print(self, out_file):
+        out_file.write(f"{self.name}")
+
+        if self.alternative == 2:
+            self.array_access.print(out_file)
+        elif self.alternative == 3:
+            self.function_call.print(out_file)
+
 
 class Function_Call:
     def __init__(self, tk: Tokenizer, name: str):
@@ -1096,6 +1287,14 @@ class Function_Call:
 
             token = tk.get_token()
 
+    def print(self, out_file):
+        out_file.write("(")
+        for i, exp in enumerate(self.expressions):
+            exp.print(out_file)
+            if i != len(self.expressions) - 1:
+                out_file.write(", ")
+        out_file.write(")")
+
 
 class Array_Access:
     def __init__(self, tk: Tokenizer, name: str):
@@ -1121,6 +1320,10 @@ class Array_Access:
             raise IncorrectTokenException(message)
         tk.skip_token()
 
+    def print(self, out_file):
+        out_file.write("[")
+        self.or_expression.print(out_file)
+        out_file.write("]")
 
 class Assignment:
     def __init__(self, tk: Tokenizer):
@@ -1144,6 +1347,11 @@ class Assignment:
 
         self.or_expression = Or(tk)
         self.or_expression.parse()
+
+    def print(self, out_file):
+        self.left.print(out_file)
+        out_file.write(f" {self.operator} ")
+        self.or_expression.print(out_file)
 
 
 class Left:
@@ -1169,6 +1377,11 @@ class Left:
         if token == Tokenizer.symbols["["]:
             self.alternative = 2
             self.array_access = Array_Access(tk, self.name)
+
+    def print(self, out_file):
+        out_file.write(self.name)
+        if self.alternative == 2:
+            self.array_access.print(out_file)
 
 
 class DuplicateFunctionException(Exception):
