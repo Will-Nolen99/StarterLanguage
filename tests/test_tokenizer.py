@@ -250,7 +250,7 @@ def test_tokenizer_greedy_all():
         "true",
         "false",
         "12317432",
-        "Hello World",
+        '"Hello World"',
         "3.1415",
         "My_Var123",
         "EOF",

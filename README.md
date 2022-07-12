@@ -11,16 +11,17 @@ Feature List ::= {Feature} {Feature List} | {Feature}
 Feature ::= {Function} | {Class}               class will not be implemented initially but I am keping here for now. Same with Struct. Some things are left in the Grammar but will not be implemented
 
              
-Function ::= define {name} = {Function Declaration Sequence} -> { {Statement Sequence} } -> {return type}    -
+Function ::= define {name} = {Function Declaration Sequence} -> { {Statement Sequence} } -> {return type}    -p
 
-Function Declaration Sequence ::= {Function Declaration}, {Function Declaration Sequnce} | { Function Declaration}    -
-Statement Sequence ::= {Statement} {Statement Sequence} | {Statement}   -
-Declaration Sequence ::= {Declaration}, {Declaration Sequence} | {Declaration}   -
-Statement ::= {Declaration Sequence} | {Expression} | {If} | {While} | {Do while} | {For} | {Input} | {Output}     -
-Declaration ::= {Type} {Name} | {Type} {Name} = {Or} -
-Function Declaration ::= {Type} {Name}   -
+Function Declaration Sequence ::= {Function Declaration}, {Function Declaration Sequnce} | { Function Declaration}    -p
+Statement Sequence ::= {Statement} {Statement Sequence} | {Statement}   -p
+Declaration Sequence ::= {Declaration}, {Declaration Sequence} | {Declaration}   -p
+Statement ::= {Declaration Sequence} | {Expression} | {If} | {While} | {Do while} | {For} | {Input} | {Output} | {return}    -p
+Declaration ::= {Type} {Name} | {Type} {Name} = {Or} -p
+Function Declaration ::= {Type} {Name}   -p
 Type ::= int | float | boolean | string | array    # I am just doing this in place when needed instead of making it a non-terminal
 
+Return := return {name} | return {Expression}
 
 If ::= if {Expression} { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else {If}      -
 

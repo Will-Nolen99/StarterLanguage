@@ -1,0 +1,51 @@
+define main = array args -> {
+	int x = 4
+	return 5
+} -> int
+
+define addition = int x, int y -> {
+	int result = x + y
+	return result
+} -> int
+
+define flow = boolean x -> {
+	float double = -2.506
+	if double < 2.501 {
+		print(double)
+	}
+	int count = 0, int x, float y, boolean z = True
+	while double < 0 {
+		let double += 0.5
+		let count = count + 1
+	}
+	print(count)
+	for int x = 4, float y = 2 | x < 2 * y | let x += 1 {
+		input("Enter a number", addition)
+		let x = x ^ addition
+	}
+	return double
+} -> float
+
+define nested = int x -> {
+	if x > 15 % 4 {
+		while x ~ 2 != 0 {
+			array arr = [1, 2, 3, 4, 5]
+			do {
+				int y = 3
+				let y := x + 3 - 4 * 4 + 6 ^ 4
+				let y -= x ~ 4 * (x > 5 && x <= 10) ^ 4
+				x++ 
+			} while x : 4 != 6
+		}
+	} else if x < 0 {
+		print("Hello World")
+	} else {
+		print("Whoops")
+	}
+	if x {
+		print("hi")
+	} else {
+		print("no")
+	}
+} -> array
+
