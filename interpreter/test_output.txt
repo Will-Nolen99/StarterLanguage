@@ -1,4 +1,5 @@
 define main = array args -> {
+	string x = "Hello  World"
 	int x = 4
 	return 5
 } -> int
@@ -20,7 +21,7 @@ define flow = boolean x -> {
 	}
 	print(count)
 	for int x = 4, float y = 2 | x < 2 * y | let x += 1 {
-		input("Enter a number", addition)
+		read("Enter a number", addition)
 		let x = x ^ addition
 	}
 	return double
@@ -35,6 +36,11 @@ define nested = int x -> {
 				let y := x + 3 - 4 * 4 + 6 ^ 4
 				let y -= x ~ 4 * (x > 5 && x <= 10) ^ 4
 				x++ 
+				x-- 
+				--x
+				++x
+				!x
+				let x /= arr[4]
 			} while x : 4 != 6
 		}
 	} else if x < 0 {
@@ -47,5 +53,6 @@ define nested = int x -> {
 	} else {
 		print("no")
 	}
+	test(x, y, z)
 } -> array
 

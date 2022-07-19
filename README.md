@@ -82,3 +82,9 @@ $
 
 Name ::= Some regular expression     Capital letters lowercase letters digits and underscore
 
+
+
+
+
+
+variables in scope will be stored in 2 dicts. One name value dict, one name type dict

@@ -1,4 +1,5 @@
 define main = array args -> {
+    string x = "Hello  World"
 	int x = 4
 	return 5
 } -> int
@@ -7,6 +8,7 @@ define addition = int x, int y -> {
 
     int result = x + y
     return result
+    
 
 } -> int
 
@@ -48,13 +50,20 @@ define nested = int x -> {
         while x ~ 2 != 0 {
 
             array arr = [1, 2, 3, 4, 5]
-            do {
+            do{
                 int y = 3
 
                 let y := x + 3 - 4 * 4 + 6 ^ 4
                 let y -= x ~ 4 * (x > 5 && x <= 10) ^ 4
+
                 x++
-            } while x : 4 != 6
+				x-- 
+				--x
+				++x
+				!x
+
+                let x /= arr[4]
+            }while x : 4 != 6
         }
     }else if x < 0 {
         print("Hello World")
@@ -67,5 +76,8 @@ define nested = int x -> {
     } else {
         print("no")
     }
+
+    test(x, y, z)
+
 
 } -> array

@@ -12,7 +12,7 @@ class Tokenizer:
         "*=": 1,
         "+=": 2,
         "-=": 3,
-        "\=": 4,
+        "/=": 4,
         "~=": 5,
         "%=": 6,
         "^=": 7,
@@ -245,9 +245,9 @@ class Tokenizer:
 
                 elif re.search(string_regex, token):
                     match = re.search(string_regex, token)
-                    current_string = match[
-                        0
-                    ]  # .strip('"') # keeping this here jsut incase. This remove string from interpreted tokens.
+                    current_string = match[0].strip(
+                        '"'
+                    )  # keeping this here jsut incase. This remove string from interpreted tokens.
                     if match[0] in Tokenizer.key_words:
                         key_word_found = True
                         self.token_literals.append(match[0])

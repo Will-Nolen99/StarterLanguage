@@ -1,3 +1,6 @@
+from ast import match_case
+
+from numpy import var
 from tokenizer import Tokenizer
 
 
@@ -33,7 +36,10 @@ class Program:
         out_file.close()
 
     def execute(self):
-        pass
+        if "main" in Program.functions:
+            Program.functions.execute()
+        else:
+            print("No main function found.")
 
     @staticmethod
     def indent():
@@ -46,6 +52,40 @@ class Program:
     @staticmethod
     def make_indent(out_file):
         out_file.write("\t" * Program.indentation_level)
+
+    @staticmethod
+    def type_check(value, var_type) -> bool:
+
+        match var_type:
+            case "boolean":
+                return value in ["true", "false", True, False]
+            case "string":
+                return isinstance(value, str)
+            case "int":
+                return isinstance(value, int)
+            case "float":
+                return isinstance(value, float)
+            case "array":
+                return isinstance(value, list)
+
+    @staticmethod
+    def attempt_convert(value, type):
+
+        converted = None
+        match type:
+            case "boolean":
+                converted = bool(value)
+            case "string":
+                converted = value
+            case "int":
+                converted = int(value)
+            case "float":
+                converted = float(value)
+            case "array":
+                # TODO make a better convention
+                converted = list(value)
+
+        return converted
 
 
 class Function:
@@ -137,8 +177,23 @@ class Function:
         out_file.write("} -> ")
         out_file.write(f"{self.Type}\n")
 
-    def execute(self):
-        pass
+    def execute(self, values: list):
+        var_names, var_types = self.function_declaration_sequence.execute()
+
+        if len(values) != len(var_names):
+            message = f"Function {self.name} takes {len(var_names)} arguments.  {len(values)} where given."
+            raise ArgumentParameterMismatchException(message)
+
+        function_types = dict(zip(var_types, values))
+        function_vars = dict(zip(var_names, values))
+
+        for name in var_names:
+            if not Program.type_check(function_vars[name], function_types[name]):
+                message = f"Incorrect type in function {self.name}. {name} should be {function_types[name]}"
+                raise TypeMismatchException(message)
+
+        self.Statement_Sequence.execute(function_vars, function_types)
+        # may need to add things here I forgot what I was doing
 
 
 class Function_Declaration_Sequence:
@@ -171,6 +226,24 @@ class Function_Declaration_Sequence:
             out_file.write(", ")
             self.function_declaration_sequence.print(out_file)
 
+    def execute(self):
+        var_names = []
+        var_types = []
+
+        var_name, var_type = self.function_declaration.execute()
+        var_names.append(var_name)
+        var_types.append(var_type)
+
+        if self.alternative == 1:
+            (
+                rest_var_names,
+                rest_var_types,
+            ) = self.function_declaration_sequence.execute()
+            var_names += rest_var_names
+            var_types += rest_var_types
+
+        return var_names, var_types
+
 
 class Function_Declaration:
     def __init__(self, tk: Tokenizer):
@@ -201,6 +274,9 @@ class Function_Declaration:
 
     def print(self, out_file):
         out_file.write(f"{self.type} {self.name}")
+
+    def execute(self):
+        return self.name, self.type
 
 
 class Statement_Sequence:
@@ -246,6 +322,12 @@ class Statement_Sequence:
         if self.alternative == 2:
             self.statement_sequence.print(out_file)
 
+    def execute(self, values, types):
+        self.statement.execute(values, types)
+
+        if self.alternative == 2:
+            self.statement_sequence.execute(values, types)
+
 
 class Declaration_Sequence:
     def __init__(self, tk: Tokenizer):
@@ -274,6 +356,11 @@ class Declaration_Sequence:
         if self.alternative == 1:
             out_file.write(", ")
             self.declaration_sequence.print(out_file)
+
+    def execute(self, values, types):
+        self.declaration.execute(values, types)
+        if self.alternative == 1:
+            self.declaration_sequence.execute(values, types)
 
 
 class Statement:
@@ -367,6 +454,27 @@ class Statement:
 
         out_file.write("\n")
 
+    def execute(self, values, types):
+        match self.alternative:
+            case 1:
+                self.declaration_sequence.execute(values, types)
+            case 2:
+                self.expression.execute(values, types)
+            case 3:
+                self.if_statement.execute(values, types)
+            case 4:
+                self.while_statement.execute(values, types)
+            case 5:
+                self.do_while_statement.execute(values, types)
+            case 6:
+                self.for_statement.execute(values, types)
+            case 7:
+                self.input.execute(values, types)
+            case 8:
+                self.output.execute(values, types)
+            case 9:
+                self.ret.execute(values, types)
+
 
 class Return:
     def __init__(self, tk: Tokenizer):
@@ -402,6 +510,15 @@ class Return:
             out_file.write(f"{self.name}")
         elif self.alternative == 2:
             self.expression.print(out_file)
+
+    def execute(self, values, types):
+        if self.alternative == 1:
+            if self.name not in values:
+                message = f"{self.name} has not been declared."
+                raise UndeclaredVariableException(message)
+            return values[self.name]
+        elif self.alternative == 2:
+            return self.expression.execute(values, types)
 
 
 class Declaration:
@@ -445,6 +562,21 @@ class Declaration:
             out_file.write(" = ")
             self.or_statement.print(out_file)
 
+    def execute(self, values, types):
+        if self.name in values:
+            message = f"{self.name} has alraedy been declared."
+            raise DuplicateVariableException(message)
+
+        value = self.or_statement.execute(values, types)
+        types[self.name] = self.type
+        if Program.type_check(value, self.type):
+            values[self.name] = value
+        else:
+            message = (
+                f"{self.name}  is of type {self.type} but recieved a value of {value}."
+            )
+            raise TypeMismatchException(message)
+
 
 class Expression:
     def __init__(self, tk: Tokenizer):
@@ -473,6 +605,12 @@ class Expression:
             self.or_expression.print(out_file)
         elif self.alternative == 2:
             self.assignment.print(out_file)
+
+    def execute(self, values, types):
+        if self.alternative == 2:
+            self.assignment.execute(values, types)
+        elif self.alternative == 1:
+            return self.or_expression.execute(values, types)
 
 
 class If:
@@ -565,6 +703,15 @@ class If:
                 Program.make_indent(out_file)
                 out_file.write("}")
 
+    def execute(self, values, types):
+        condition = self.expression.execute(values, types)
+        if condition:
+            return self.statement_sequence.execute(values, types)
+        elif self.alternative == 2:
+            return self.statement_sequence2.execute(values, types)
+        elif self.alternative == 3:
+            return self.if_statement.execute(values, types)
+
 
 class While:
     def __init__(self, tk: Tokenizer):
@@ -611,6 +758,11 @@ class While:
         Program.undent()
         Program.make_indent(out_file)
         out_file.write("}")
+
+    def execute(self, values, types):
+        while self.expression.execute(values, types):
+            x = self.statement_sequence.execute(values, types)
+            # using x here as temperary precaution incase of early terminations and returns
 
 
 class Do_While:
@@ -662,6 +814,11 @@ class Do_While:
         Program.make_indent(out_file)
         out_file.write("} while ")
         self.expression.print(out_file)
+
+    def execute(self, values, types):
+        y = self.statement_sequence.execute(values, types)
+        while self.condition.execute(values, types):
+            x = self.statement_sequence.execute(values, types)
 
 
 class For:
@@ -733,6 +890,12 @@ class For:
         Program.make_indent(out_file)
         out_file.write("}")
 
+    def execute(self, values, types):
+        self.declaration_sequence.execute(values, types)
+        while self.expression.execute(values, types):
+            x = self.statement_sequence.execute(values, types)
+            self.expression2.execute(values, types)
+
 
 class Input:
     def __init__(self, tk: Tokenizer):
@@ -778,11 +941,17 @@ class Input:
         tk.skip_token()
 
     def print(self, out_file):
-        out_file.write("input(")
+        out_file.write("read(")
         self.or_expression.print(out_file)
         if self.alternative == 2:
             out_file.write(f", {self.name}")
         out_file.write(")")
+
+    def execute(self, values, types):
+        string = self.or_expression.execute(values, types)
+        std_in = input(string)
+        converted_std_in = Program.attempt_convert(std_in)
+        values[self.name] = converted_std_in
 
 
 class Output:
@@ -819,6 +988,10 @@ class Output:
         self.or_expression.print(out_file)
         out_file.write(")")
 
+    def execute(self, values, types):
+        string = self.or_expression.execute(values, types)
+        print(string)
+
 
 class Or:
     def __init__(self, tk: Tokenizer):
@@ -847,6 +1020,13 @@ class Or:
             out_file.write(" || ")
             self.or_expression.print(out_file)
 
+    def execute(self, values, types):
+        v1 = self.and_expression.execute(values, types)
+        if self.alternative == 2:
+            v2 = self.or_expression.execute(values, types)
+            return v1 or v2
+        return v1
+
 
 class And:
     def __init__(self, tk: Tokenizer):
@@ -874,6 +1054,13 @@ class And:
         if self.alternative == 2:
             out_file.write(" && ")
             self.and_expression.print(out_file)
+
+    def execute(self, values, types):
+        v1 = self.equality.execute(values, types)
+        if self.alternative == 2:
+            v2 = self.and_expression.execute(values, types)
+            return v1 and v2
+        return v1
 
 
 class Equality:
@@ -912,6 +1099,16 @@ class Equality:
         elif self.alternative == 3:
             out_file.write(" != ")
             self.equality.print(out_file)
+
+    def execute(self, values, types):
+        v1 = self.relational.execute(values, types)
+        if self.alternative in [2, 3]:
+            v2 = self.equality.execute(values, types)
+            if self.alternative == 2:
+                return v1 == v2
+            elif self.alternative == 3:
+                return v1 != v2
+        return v1
 
 
 class Relational:
@@ -966,6 +1163,21 @@ class Relational:
 
             self.relational.print(out_file)
 
+    def execute(self, values, types):
+        v1 = self.additive.execute(values, types)
+
+        if self.alternative in [2, 3, 4, 5]:
+            v2 = self.relational.execute(values, types)
+            if self.alternative == 2:
+                return v1 > v2
+            elif self.alternative == 3:
+                return v1 >= v2
+            elif self.alternative == 4:
+                return v1 < v2
+            elif self.alternative == 5:
+                return v1 <= v2
+        return v1
+
 
 class Additive:
     def __init__(self, tk: Tokenizer):
@@ -1003,6 +1215,16 @@ class Additive:
         elif self.alternative == 3:
             out_file.write(" - ")
             self.additive.print(out_file)
+
+    def execute(self, values, types):
+        v1 = self.multiplicitive.execute(values, types)
+        if self.alternative in [2, 3]:
+            v2 = self.additive.execute(values, types)
+            if self.alternative == 2:
+                return v1 + v2
+            elif self.alternative == 3:
+                return v1 - v2
+        return v1
 
 
 class Multiplicitive:
@@ -1058,6 +1280,20 @@ class Multiplicitive:
                 out_file.write(" ~ ")
                 self.multiplicitive.print(out_file)
 
+    def execute(self, values, types):
+        v1 = self.exponential.execute(values, types)
+        if self.alternative in [2, 3, 4, 5]:
+            v2 = self.multiplicitive.execute(values, types)
+            if self.alternative == 2:
+                return v1 * v2
+            elif self.alternative == 3:
+                return v1 / v2
+            elif self.alternative == 4:
+                return v1 % v2
+            elif self.alternative == 5:
+                return v1 // v2
+        return v1
+
 
 class Exponential:
     def __init__(self, tk: Tokenizer):
@@ -1096,13 +1332,24 @@ class Exponential:
             out_file.write(" : ")
             self.exponential.print(out_file)
 
+    def execute(self, values, types):
+        v1 = self.unary.execute(values, types)
+        if self.alternative in [2, 3]:
+            v2 = self.exponential.execute(values, types)
+            if self.alternative == 2:
+                return v1**v2
+            elif self.alternative == 3:
+                return v1 ** (1 / v2)
+        return v1
+
 
 class Unary:
     def __init__(self, tk: Tokenizer):
         self.tk = tk
         self.alternative = None
         self.postfix = None
-        self.unary = None
+        self.term = None
+        self.var = None
 
     def parse(self):
         tk = self.tk
@@ -1111,18 +1358,18 @@ class Unary:
         if token == Tokenizer.symbols["++"]:
             self.alternative = 2
             tk.skip_token()
-            self.unary = Unary(tk)
-            self.unary.parse()
+            self.var = Var(tk)
+            self.var.parse()
         elif token == Tokenizer.symbols["--"]:
             self.alternative = 3
             tk.skip_token()
-            self.unary = Unary(tk)
-            self.unary.parse()
+            self.var = Var(tk)
+            self.var.parse()
         elif token == Tokenizer.symbols["!"]:
-            self.alternative = 3
+            self.alternative = 4
             tk.skip_token()
-            self.unary = Unary(tk)
-            self.unary.parse()
+            self.term = Term(tk)
+            self.term.parse()
         else:
             self.alternative = 1
             self.postfix = Postfix(tk)
@@ -1133,13 +1380,33 @@ class Unary:
             self.postfix.print(out_file)
         elif self.alternative == 2:
             out_file.write("++")
-            self.unary.print(out_file)
+            self.var.print(out_file)
         elif self.alternative == 3:
             out_file.write("--")
-            self.unary.print(out_file)
+            self.var.print(out_file)
         elif self.alternative == 4:
             out_file.write("!")
-            self.unary.print(out_file)
+            self.term.print(out_file)
+
+    def execute(self, values, types):
+        if self.alternative == 1:
+            return self.postfix.execute(values, types)
+
+        if self.alternative == 4:
+            return not self.term.execute(values, types)
+
+        if self.alternative in [2, 3]:
+            var = self.var.execute(values, types)
+            if var not in values:
+                message = f"Prefix operator can only be used on variables."
+                raise InvalidOperatorException(message)
+
+            if self.alternative == 2:
+                values[var] += 1
+                return values[var]
+            elif self.alternative == 3:
+                values[var] -= 1
+                return values[var]
 
 
 class Postfix:
@@ -1147,12 +1414,18 @@ class Postfix:
         self.tk = tk
         self.alternative = None
         self.term = None
+        self.var = None
 
     def parse(self):
         tk = self.tk
 
-        self.term = Term(tk)
-        self.term.parse()
+        if tk.get_token() == Tokenizer.name_token:
+            self.var = Var(tk)
+            self.var.parse()
+        else:
+            self.alternative = 1
+            self.term = Term(tk)
+            self.term.parse()
 
         token = tk.get_token()
         if token == Tokenizer.symbols["++"]:
@@ -1164,11 +1437,32 @@ class Postfix:
             tk.skip_token()
 
     def print(self, out_file):
-        self.term.print(out_file)
+        if self.alternative == 1:
+            self.term.print(out_file)
+        else:
+            self.var.print(out_file)
         if self.alternative == 2:
             out_file.write("++ ")
         elif self.alternative == 3:
             out_file.write("-- ")
+
+    def execute(self, values, types):
+        if self.alternative == 1:
+            return self.term.execute(values, types)
+
+        if self.alternative in [2, 3]:
+            var = self.var.execute(values, types)
+            if var not in values:
+                message = f"Postfix operator can only be used on variables."
+                raise InvalidOperatorException(message)
+
+            val = values[var]
+            if self.alternative == 2:
+                values[var] += 1
+                return val
+            elif self.alternative == 3:
+                values[var] -= 1
+                return val
 
 
 class Term:
@@ -1216,6 +1510,15 @@ class Term:
         elif self.alternative == 3:
             self.var.print(out_file)
 
+    def execute(self, values, types):
+        if self.alternative == 1:
+            return self.literal.execute(values, types)
+        elif self.alternative == 2:
+            return self.or_statement.execute(values, types)
+        elif self.alternative == 3:
+            variable = self.var.execute(values, types)
+            return values[variable]
+
 
 class Literal:
     def __init__(self, tk: Tokenizer):
@@ -1256,7 +1559,13 @@ class Literal:
             raise IncorrectTokenException(message)
 
     def print(self, out_file):
-        out_file.write(f"{self.value}")
+        quote = ""
+        if self.type == "string":
+            quote = '"'
+        out_file.write(f"{quote}{self.value}{quote}")
+
+    def execute(self, values, types):
+        return self.value
 
 
 class ArrayLiteral:
@@ -1305,6 +1614,9 @@ class ArrayLiteral:
             token = tk.get_token()
         tk.skip_token()
 
+    def execute(self, values, types):
+        return self.value
+
 
 class Var:
     def __init__(self, tk: Tokenizer):
@@ -1343,6 +1655,14 @@ class Var:
         elif self.alternative == 3:
             self.function_call.print(out_file)
 
+    def execute(self, values, name):
+        if self.alternative == 2:
+            return self.array_access.execute()
+        elif self.alternative == 3:
+            return self.function_call.execute()
+        elif self.alternative == 3:
+            return self.name
+
 
 class Function_Call:
     def __init__(self, tk: Tokenizer, name: str):
@@ -1372,6 +1692,8 @@ class Function_Call:
 
             token = tk.get_token()
 
+        tk.skip_token()
+
     def print(self, out_file):
         out_file.write("(")
         for i, exp in enumerate(self.expressions):
@@ -1379,6 +1701,12 @@ class Function_Call:
             if i != len(self.expressions) - 1:
                 out_file.write(", ")
         out_file.write(")")
+
+    def execute(self, values, types):
+        vals = []
+        for expression in self.expressions:
+            vals.append(expression.execute(values, types))
+        return Program.functions[self.name].execute(vals)
 
 
 class Array_Access:
@@ -1409,6 +1737,17 @@ class Array_Access:
         out_file.write("[")
         self.or_expression.print(out_file)
         out_file.write("]")
+
+    def execute(self, values, types):
+        if Program.type_check(values[self.name], var):
+            index = self.or_expression.execute(values, types)
+            return values[self.name][index]
+        else:
+            message = f"Cannot acces type {types[self.name]}."
+            raise TypeMismatchException(message)
+
+    def get_name_index(self, values, types):
+        return self.name, self.or_expression.execute(values, types)
 
 
 class Assignment:
@@ -1451,6 +1790,12 @@ class Assignment:
         out_file.write(f" {self.operator} ")
         self.or_expression.print(out_file)
 
+    def execute(self, values, types):
+
+        val = self.or_expression.execute(values, types)
+        self.left.execute(values, types, self.operator, val)
+        return val
+
 
 class Left:
     def __init__(self, tk: Tokenizer):
@@ -1481,6 +1826,38 @@ class Left:
         if self.alternative == 2:
             self.array_access.print(out_file)
 
+    def execute(self, values, types, operator, set_val):
+        if self.alternative == 2:
+            arr, index = self.array_access.get_name_index(values, types)
+            match operator:
+                case "=":
+                    values[arr][index] = set_val
+                case "*=":
+                    values[arr][index] *= set_val
+                case "-=":
+                    values[arr][index] -= set_val
+                case "+=":
+                    values[arr][index] += set_val
+                case "/=":
+                    values[arr][index] /= set_val
+                case "~=":
+                    values[arr][index] //= set_val
+
+        if self.alternative == 3:
+            match operator:
+                case "=":
+                    values[self.name] = set_val
+                case "*=":
+                    values[self.name] *= set_val
+                case "-=":
+                    values[self.name] -= set_val
+                case "+=":
+                    values[self.name] += set_val
+                case "/=":
+                    values[self.name] /= set_val
+                case "~=":
+                    values[self.name] //= set_val
+
 
 class DuplicateFunctionException(Exception):
     def __init__(self, message):
@@ -1488,5 +1865,30 @@ class DuplicateFunctionException(Exception):
 
 
 class IncorrectTokenException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class ArgumentParameterMismatchException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class TypeMismatchException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class DuplicateVariableException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class UndeclaredVariableException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class InvalidOperatorException(Exception):
     def __init__(self, message):
         super().__init__(message)
