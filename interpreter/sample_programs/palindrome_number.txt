@@ -1,0 +1,35 @@
+define main = array args, int arg_count -> {
+
+    int x, int y = 0
+    int remainder = 0
+    read("Enter a number: ", x)
+    boolean palindrome = false
+
+    while x != 0{
+
+        let remainder = x % 10
+        
+
+        let y += remainder
+
+        if x == y {
+            let palindrome = true
+        }
+        # Testing then adding then testing again helps recognize odd length palindromes
+        let x ~= 10
+        if x == y {
+            let palindrome = true
+        }
+
+        let y *= 10
+
+    }
+
+    print(palindrome)
+
+
+    return 1
+} -> int
+
+
+

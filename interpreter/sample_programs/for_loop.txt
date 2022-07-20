@@ -1,0 +1,12 @@
+define main = array args, int arg_count -> {   
+    int userIn
+    int square
+
+    for int x = 0 | x < 10 | x++ {
+    
+       let square = x ^ 2
+       print(square)
+    }
+
+    return 1
+} -> int

@@ -1,0 +1,36 @@
+define main = array args, int arg_count -> {
+
+    int num
+    int fibnum
+    read("Enter a number: ", num)
+
+    let fibnum = fibonacci(num)
+
+    print(fibnum)
+    
+    return 1
+} -> int
+
+
+
+
+define fibonacci = int index -> {
+
+    if index == 0 {
+        return 0
+    } else if index == 1 {
+        return 1
+    } else {
+
+        int n1 = index - 1
+        int n2 = index - 2
+        int fib1 = fibonacci(n1)
+        int fib2 = fibonacci(n2)
+
+        int sum = fib1 + fib2
+        return sum
+
+    }
+
+
+} -> int

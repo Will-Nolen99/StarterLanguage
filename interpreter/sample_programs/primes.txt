@@ -1,0 +1,25 @@
+define main = array args, int arg_count -> {
+
+    int num_primes = 1000
+    int count = 1
+    int current = 2
+    boolean prime = true
+
+    while count < num_primes {
+
+        let prime = true
+        for int i = 2 | i < current && prime | i++ {
+            if current % i == 0 {
+                let prime = false
+            }
+        }
+
+        if prime {
+            print(current)
+            count++
+        }
+        current++
+    }
+
+    return 1
+} -> int

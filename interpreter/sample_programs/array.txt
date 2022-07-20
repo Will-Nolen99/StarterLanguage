@@ -1,0 +1,15 @@
+define main = array args, int arg_count -> {
+
+    array x = [1, 2, 3, "Hello", 5]
+    int size = 5
+
+    int index  = 0
+    do {
+
+        print(x[index])
+        index++
+        
+    } while index < size
+
+    return 1
+} -> int

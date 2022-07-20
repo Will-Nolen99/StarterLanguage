@@ -1,0 +1,19 @@
+define main = array args, int arg_count -> {
+
+    int x = 0
+    read("Enter a number: ", x)
+    int fact = factorial(x)
+    print(fact)
+
+    return 1
+} -> int
+
+
+define factorial = int num -> {
+    if num <= 1 {
+        return 1
+    } else {
+        int x = num * factorial(num - 1)
+        return x
+    }
+} -> int

@@ -8,6 +8,7 @@ class Program:
 
     functions = {}
     indentation_level = 0
+    ret_stack = []
 
     def __init__(self, tk: Tokenizer):
         self.tk = tk
@@ -25,7 +26,7 @@ class Program:
 
             Program.functions[new_name] = function
 
-        print("Done Parsing")
+        # print("Done Parsing")
 
     def print(self, output_file):
         out_file = open(output_file, "w")
@@ -37,7 +38,9 @@ class Program:
 
     def execute(self):
         if "main" in Program.functions:
-            Program.functions.execute()
+            command_line_args = []
+            arg_count = 0
+            Program.functions["main"].execute([command_line_args, arg_count])
         else:
             print("No main function found.")
 
@@ -184,7 +187,7 @@ class Function:
             message = f"Function {self.name} takes {len(var_names)} arguments.  {len(values)} where given."
             raise ArgumentParameterMismatchException(message)
 
-        function_types = dict(zip(var_types, values))
+        function_types = dict(zip(var_names, var_types))
         function_vars = dict(zip(var_names, values))
 
         for name in var_names:
@@ -193,6 +196,8 @@ class Function:
                 raise TypeMismatchException(message)
 
         self.Statement_Sequence.execute(function_vars, function_types)
+        x = Program.ret_stack.pop()
+        return x
         # may need to add things here I forgot what I was doing
 
 
@@ -368,7 +373,7 @@ class Statement:
         self.tk = tk
         self.alternative = None
         self.declaration_sequence = None
-        self.expresssion = None
+        self.expression = None
         self.if_statement = None
         self.while_statement = None
         self.do_while_statement = None
@@ -426,8 +431,8 @@ class Statement:
 
         else:
             self.alternative = 2
-            self.expresssion = Expression(tk)
-            self.expresssion.parse()
+            self.expression = Expression(tk)
+            self.expression.parse()
 
     def print(self, out_file):
 
@@ -436,7 +441,7 @@ class Statement:
             case 1:
                 self.declaration_sequence.print(out_file)
             case 2:
-                self.expresssion.print(out_file)
+                self.expression.print(out_file)
             case 3:
                 self.if_statement.print(out_file)
             case 4:
@@ -516,9 +521,12 @@ class Return:
             if self.name not in values:
                 message = f"{self.name} has not been declared."
                 raise UndeclaredVariableException(message)
+            Program.ret_stack.append(values[self.name])
             return values[self.name]
         elif self.alternative == 2:
-            return self.expression.execute(values, types)
+            x = self.expression.execute(values, types)
+            Program.ret_stack.append(x)
+            return x
 
 
 class Declaration:
@@ -563,19 +571,22 @@ class Declaration:
             self.or_statement.print(out_file)
 
     def execute(self, values, types):
+        """This allows overwriteing on declaration
         if self.name in values:
             message = f"{self.name} has alraedy been declared."
             raise DuplicateVariableException(message)
-
-        value = self.or_statement.execute(values, types)
-        types[self.name] = self.type
-        if Program.type_check(value, self.type):
-            values[self.name] = value
+        """
+        if self.alternative == 2:
+            value = self.or_statement.execute(values, types)
+            types[self.name] = self.type
+            if Program.type_check(value, self.type):
+                values[self.name] = value
+            else:
+                message = f"{self.name}  is of type {self.type} but recieved a value of {value}."
+                raise TypeMismatchException(message)
         else:
-            message = (
-                f"{self.name}  is of type {self.type} but recieved a value of {value}."
-            )
-            raise TypeMismatchException(message)
+            values[self.name] = None
+            types[self.name] = self.type
 
 
 class Expression:
@@ -817,7 +828,7 @@ class Do_While:
 
     def execute(self, values, types):
         y = self.statement_sequence.execute(values, types)
-        while self.condition.execute(values, types):
+        while self.expression.execute(values, types):
             x = self.statement_sequence.execute(values, types)
 
 
@@ -950,7 +961,7 @@ class Input:
     def execute(self, values, types):
         string = self.or_expression.execute(values, types)
         std_in = input(string)
-        converted_std_in = Program.attempt_convert(std_in)
+        converted_std_in = Program.attempt_convert(std_in, types[self.name])
         values[self.name] = converted_std_in
 
 
@@ -1396,7 +1407,7 @@ class Unary:
             return not self.term.execute(values, types)
 
         if self.alternative in [2, 3]:
-            var = self.var.execute(values, types)
+            var = self.var.execute(values, types, "name")
             if var not in values:
                 message = f"Prefix operator can only be used on variables."
                 raise InvalidOperatorException(message)
@@ -1422,6 +1433,7 @@ class Postfix:
         if tk.get_token() == Tokenizer.name_token:
             self.var = Var(tk)
             self.var.parse()
+            self.alternative = 4
         else:
             self.alternative = 1
             self.term = Term(tk)
@@ -1439,9 +1451,9 @@ class Postfix:
     def print(self, out_file):
         if self.alternative == 1:
             self.term.print(out_file)
-        else:
+        elif self.alternative == 4:
             self.var.print(out_file)
-        if self.alternative == 2:
+        elif self.alternative == 2:
             out_file.write("++ ")
         elif self.alternative == 3:
             out_file.write("-- ")
@@ -1451,7 +1463,7 @@ class Postfix:
             return self.term.execute(values, types)
 
         if self.alternative in [2, 3]:
-            var = self.var.execute(values, types)
+            var = self.var.execute(values, types, "name")
             if var not in values:
                 message = f"Postfix operator can only be used on variables."
                 raise InvalidOperatorException(message)
@@ -1463,6 +1475,8 @@ class Postfix:
             elif self.alternative == 3:
                 values[var] -= 1
                 return val
+        else:
+            return self.var.execute(values, types)
 
 
 class Term:
@@ -1655,13 +1669,14 @@ class Var:
         elif self.alternative == 3:
             self.function_call.print(out_file)
 
-    def execute(self, values, name):
+    def execute(self, values, types, ret_type="val"):
         if self.alternative == 2:
-            return self.array_access.execute()
+            return self.array_access.execute(values, types)
         elif self.alternative == 3:
-            return self.function_call.execute()
-        elif self.alternative == 3:
-            return self.name
+            return self.function_call.execute(values, types)
+        elif self.alternative == 4:
+
+            return values[self.name] if ret_type == "val" else self.name
 
 
 class Function_Call:
@@ -1739,11 +1754,11 @@ class Array_Access:
         out_file.write("]")
 
     def execute(self, values, types):
-        if Program.type_check(values[self.name], var):
+        if Program.type_check(values[self.name], types[self.name]):
             index = self.or_expression.execute(values, types)
             return values[self.name][index]
         else:
-            message = f"Cannot acces type {types[self.name]}."
+            message = f"Cannot access type {types[self.name]}."
             raise TypeMismatchException(message)
 
     def get_name_index(self, values, types):
@@ -1827,6 +1842,10 @@ class Left:
             self.array_access.print(out_file)
 
     def execute(self, values, types, operator, set_val):
+        if self.name not in values:
+            message = f"{self.name} is not defined."
+            raise UndeclaredVariableException(message)
+
         if self.alternative == 2:
             arr, index = self.array_access.get_name_index(values, types)
             match operator:

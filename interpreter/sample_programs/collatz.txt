@@ -1,0 +1,17 @@
+define main = array args, int arg_count -> {
+
+    int term = 195654
+
+    while term != 1 {
+
+        print(term)
+        if term  % 2 == 0 {
+            let term ~= 2
+        }else{
+            let term = term * 3 + 1
+        }
+    }
+    print(term)
+
+    return 1
+} -> int

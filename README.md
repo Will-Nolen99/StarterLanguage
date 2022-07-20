@@ -1,90 +1,119 @@
 # StarterLanguage
-Basic custom Programming Language
+Basic custom Programming Language implemented in python
 
 
+# Features
+Interpreted Programming language.
+Full arithmatic support: addition, subtraction, multiplication, division, modulus, floor division, exoponentiation, and nth root
+Full flow control: if, if else, if else if ..., for loops, while loops, do while loops.
+Input and output: Print and read from terminal.
+5 Basic data types: int, float, boolean, string, array.
+Pre/Post Increment/Decrement as well as assignment types for all arithmetic operators.
+Define custom functions with paramaters and return types.
+
+# Features soon to be added/partially implemented
+command line arguments: Partially implemented
+structs / basic class: Included in bnf grammar not yet implemented
+import functions from other files: not yet implemented
+Better type casting: Partially implemented based on python defaults
+Better functions for interacting with strings / arrays: not yet implemented
 
 
-# BNF Grammar
-
-Program ::= {Feature List} -
-Feature List ::= {Feature} {Feature List} | {Feature}
-Feature ::= {Function} | {Class}               class will not be implemented initially but I am keping here for now. Same with Struct. Some things are left in the Grammar but will not be implemented
-
-             
-Function ::= define {name} = {Function Declaration Sequence} -> { {Statement Sequence} } -> {return type}    -p
-
-Function Declaration Sequence ::= {Function Declaration}, {Function Declaration Sequnce} | { Function Declaration}    -p
-Statement Sequence ::= {Statement} {Statement Sequence} | {Statement}   -p
-Declaration Sequence ::= {Declaration}, {Declaration Sequence} | {Declaration}   -p
-Statement ::= {Declaration Sequence} | {Expression} | {If} | {While} | {Do while} | {For} | {Input} | {Output} | {return}    -p
-Declaration ::= {Type} {Name} | {Type} {Name} = {Or} -p
-Function Declaration ::= {Type} {Name}   -p
-Type ::= int | float | boolean | string | array    # I am just doing this in place when needed instead of making it a non-terminal
-
-Return := return {name} | return {Expression}
-
-If ::= if {Expression} { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else { {Statement Sequence} } | if {Expression} { {Statement Sequence} } else {If}      -
-
-While ::= while {expression} { {Statement Sequence} }      -
-Do While ::= do { {Statement Sequence} } while {expression}       -
-
-For ::= for {Declaration Sequence} | {Expression} | {Expression} {{Statement Sequence}}      - 
+# Instructions to run
+Navigate to directory containing interpreter.py
+To run in terminal use: python interpreter.py <source_file_path>
 
 
-Expression = {Or} | {Assignment}      - 
+# Language Guide
 
-Assignment ::= let {left} {Assignment Operator} {Or} -
-left ::= {Struct Access} | {Aray Access} | {Name} -
-Assignment Operator ::= = | *= | += | -= | \= | ~= | %= | ^= | :=     -
-Array Creation ::= Array[{int}]-
+Declare variables using their type then the name: int x
+This may or may not be followed by initialization: int x = 5
+Many variables may be declared in series using a comma. Unlike other languages the type must be specified each time but types can be mixed: int x = 5, float y, float z, int num
+
+After declaration assignment is done using the let keyword: let x = 7
+                                                            let y = x * 4
+There exist assignment operators for each arithmetic operator.
+The the arithmetic operator simply is put in front of the equal sign: let x += 4
+                                                                      let z *= 3
+
+Here are all arithmetic operators and their use:
++   addition
+-   subtraction
+*   multiplication
+/   division
+%   modulus
+~   floor division
+^   exponentiation:    x ^ 4   is x * x * x * x
+:   nth root:   x : 4  is the 4th root of x        8 : 3 will return 2  since 2^3 = 8
+
+Increment and decrement operators work the same as in other languages.
+To use these there is no need for the let keyword unless used in an assignment statement.
+x++
+++x
+--x
+x--
+
+flow control
+
+if:
+
+if condition {
+    statements
+}
+
+if condition {
+    statements
+} else {
+    statements
+}
+
+if condition {
+    statements
+} else if condition {
+    statments
+}
+
+These can be chained indefinetly
+
+while:
+while condition {
+    statements
+}
+
+do while:
+
+do{
+    statements
+} while condition
+
+for:
+
+for declaration | loop condition | expression ran at end of each loop iteration {
+    statements
+}
 
 
-Or ::= {And} | {And} || {Or}         -
-And ::= {Equality} | {Equality} && {And}     -
-Equality ::= {Relational} | {Relational} == {Equality}   | {Relational} != {Equality} 
-Relational ::= {Additive} | {Additive} > {Relational} | {Additive} >= {Relational} | {Additive} < {Relational} | {Additive} <= {Relational} 
-Additive ::= {Multiplicitive} | {Multiplicitive} + {Additive} | {Multiplicitive} - {Additive}
-Multiplicitive ::= {Exponential} | {Exponential} * {Multiplicitive} | {Exponential} / {Multiplicitive} |  {Exponential} % {Multiplicitive} | {Exponential} ~ {Multiplicitive}            ~ is the floor after division operator  returns int
-Exponential ::= {unary} | {unary} ^ {Exponential} | {unary} : {exponential}    : is for nth root
-Unary ::= {postfix} | ++{unary} | --{unary} |!{unary}                         # This is currently causing a bug I think it is fixed but I will leave this here as a not. The symbols in front were not recognized when using one token look ahead for expressions
-
-Postfix ::= {Term} | {Term}++ | {Term}--    This will need to have a runtime check for the type of term that is a child
-Term ::= {literal} | ({Or}) | {var} -
-
-Array Access ::= {name}[Or]
+binary and unary operators
+&&    logical and
+||    logical or
+!     logical not
+( and ) can be used to establish precedence
 
 
-var ::= {Struct Access} | {Array Access} | {Function call} | {Name}     -  to find type of access read in name first then look to see next symbol     Class access 
+functions:
 
-literal ::= {int} | {float} | {boolean} | {string} | {array}     -
+define name = paramater declaration -> {
+    statements
+} -> return type
 
+Each function requires at least one parameter and must state a return type.
+To return from a function use: return value_to_return
 
-int ::= some regular expression
-float ::= some regular expression       This will match and number with a decimal and value on the right of the decimal   1.2  .3 .34 0.11231  are all valid  1. 1 are not valid
-boolean ::= true | false
-string ::= " some regular expression surrounded in quotes "
-array ::= [{array contents}]
-array contents ::= {literal} | {literal}, {array contents}
+main function:
+define main = array command_line_args, int arg_count -> {
 
-Input ::= input({or})
-Output ::= print({or})
+} -> int
 
-creation ::= {type}[{num}]       used to make arrays of certain size. Can be changed to make different classes or structs in the future
-
-Single line Comment = #
-Multiline Comment = 
-$
-
-Hello world this is a multiline quote
-
-$
- 
-
-Name ::= Some regular expression     Capital letters lowercase letters digits and underscore
-
-
-
-
-
-
-variables in scope will be stored in 2 dicts. One name value dict, one name type dict
+The names of the parameters above can be changed.
+The first parameter will be an array containing the command line arguments.
+The second will be the length of that array.
